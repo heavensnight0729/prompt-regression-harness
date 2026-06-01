@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 
@@ -7,7 +6,7 @@ import {
   evaluatePromptFixtures,
 } from './evaluate-fixtures.js';
 import {
-  loadPromptFixturesFromJson,
+  loadPromptFixturesFromPath,
 } from './load-fixtures.js';
 import {
   renderPromptRegressionReport,
@@ -27,7 +26,7 @@ Options:
 
 export async function runPromptRegressionHarnessCli({
   argv = process.argv.slice(2),
-  readFile: readFileDependency = readFile,
+  loadFixtures = loadPromptFixturesFromPath,
   writeOutput = (value) => process.stdout.write(value),
 } = {}) {
   const parsedArgs = parseArgs(argv);
@@ -37,8 +36,7 @@ export async function runPromptRegressionHarnessCli({
     return 0;
   }
 
-  const jsonText = await readFileDependency(parsedArgs.fixturesPath, 'utf8');
-  const fixtures = loadPromptFixturesFromJson(jsonText);
+  const fixtures = await loadFixtures(parsedArgs.fixturesPath);
   const result = evaluatePromptFixtures(fixtures);
   const output = parsedArgs.format === 'json'
     ? `${JSON.stringify(result, null, 2)}\n`

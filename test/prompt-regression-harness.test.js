@@ -9,6 +9,7 @@ import {
 } from '../src/prompt-regression-harness/render-report.js';
 import {
   loadPromptFixturesFromJson,
+  loadPromptFixturesFromPath,
 } from '../src/prompt-regression-harness/load-fixtures.js';
 import {
   runPromptRegressionHarnessCli,
@@ -154,20 +155,28 @@ test('loads prompt fixtures from json payload', () => {
   ]);
 });
 
-test('cli reads fixtures file writes markdown and returns failing status', async () => {
-  const writes = [];
+test('loads and combines fixture files from a directory in stable order', async () => {
   const readPaths = [];
-
-  const exitCode = await runPromptRegressionHarnessCli({
-    argv: ['--fixtures', 'prompt-fixtures.json'],
+  const fixtures = await loadPromptFixturesFromPath('fixtures', {
+    stat: async () => ({
+      isFile: () => false,
+      isDirectory: () => true,
+    }),
+    readdir: async () => [
+      { name: 'b.json', isFile: () => true },
+      { name: 'notes.md', isFile: () => true },
+      { name: 'a.json', isFile: () => true },
+      { name: 'nested', isFile: () => false },
+    ],
     readFile: async (filePath) => {
       readPaths.push(filePath);
+      const id = filePath.endsWith('a.json') ? 'a-case' : 'b-case';
       return JSON.stringify({
         cases: [
           {
-            id: 'missing-summary',
+            id,
             prompt: 'Summarize.',
-            actualOutput: 'Done.',
+            actualOutput: 'Summary: done',
             assertions: [
               { type: 'contains', value: 'Summary:' },
             ],
@@ -175,11 +184,36 @@ test('cli reads fixtures file writes markdown and returns failing status', async
         ],
       });
     },
+  });
+
+  assert.deepEqual(readPaths, ['fixtures/a.json', 'fixtures/b.json']);
+  assert.deepEqual(fixtures.map((fixture) => fixture.id), ['a-case', 'b-case']);
+});
+
+test('cli reads fixtures file writes markdown and returns failing status', async () => {
+  const writes = [];
+  const fixturePaths = [];
+
+  const exitCode = await runPromptRegressionHarnessCli({
+    argv: ['--fixtures', 'prompt-fixtures.json'],
+    loadFixtures: async (fixturesPath) => {
+      fixturePaths.push(fixturesPath);
+      return [
+        {
+          id: 'missing-summary',
+          prompt: 'Summarize.',
+          actualOutput: 'Done.',
+          assertions: [
+            { type: 'contains', value: 'Summary:' },
+          ],
+        },
+      ];
+    },
     writeOutput: (value) => writes.push(value),
   });
 
   assert.equal(exitCode, 1);
-  assert.deepEqual(readPaths, ['prompt-fixtures.json']);
+  assert.deepEqual(fixturePaths, ['prompt-fixtures.json']);
   assert.match(writes[0], /^# Prompt Regression Report/);
   assert.match(writes[0], /missing-summary/);
 });
@@ -196,18 +230,16 @@ test('cli supports json output and configurable failure policy', async () => {
       '--fail-on',
       'never',
     ],
-    readFile: async () => JSON.stringify({
-      cases: [
-        {
-          id: 'missing-summary',
-          prompt: 'Summarize.',
-          actualOutput: 'Done.',
-          assertions: [
-            { type: 'contains', value: 'Summary:' },
-          ],
-        },
-      ],
-    }),
+    loadFixtures: async () => [
+      {
+        id: 'missing-summary',
+        prompt: 'Summarize.',
+        actualOutput: 'Done.',
+        assertions: [
+          { type: 'contains', value: 'Summary:' },
+        ],
+      },
+    ],
     writeOutput: (value) => writes.push(value),
   });
 
@@ -230,19 +262,17 @@ test('cli can fail only when score is below threshold', async () => {
       '--min-score',
       '0.75',
     ],
-    readFile: async () => JSON.stringify({
-      cases: [
-        {
-          id: 'partial-pass',
-          prompt: 'Summarize.',
-          actualOutput: 'Summary: done',
-          assertions: [
-            { type: 'contains', value: 'Summary:' },
-            { type: 'contains', value: 'rollback' },
-          ],
-        },
-      ],
-    }),
+    loadFixtures: async () => [
+      {
+        id: 'partial-pass',
+        prompt: 'Summarize.',
+        actualOutput: 'Summary: done',
+        assertions: [
+          { type: 'contains', value: 'Summary:' },
+          { type: 'contains', value: 'rollback' },
+        ],
+      },
+    ],
     writeOutput: (value) => writes.push(value),
   });
 
@@ -255,8 +285,8 @@ test('cli renders help without reading fixture files', async () => {
 
   const exitCode = await runPromptRegressionHarnessCli({
     argv: ['--help'],
-    readFile: async () => {
-      throw new Error('readFile should not be called');
+    loadFixtures: async () => {
+      throw new Error('loadFixtures should not be called');
     },
     writeOutput: (value) => writes.push(value),
   });
