@@ -7,6 +7,12 @@ import {
 import {
   renderPromptRegressionReport,
 } from '../src/prompt-regression-harness/render-report.js';
+import {
+  loadPromptFixturesFromJson,
+} from '../src/prompt-regression-harness/load-fixtures.js';
+import {
+  runPromptRegressionHarnessCli,
+} from '../src/prompt-regression-harness/cli.js';
 
 test('evaluates exact contains and not-contains assertions', () => {
   const result = evaluatePromptFixtures([
@@ -95,4 +101,75 @@ test('renders deterministic markdown summary and case table', () => {
   assert.match(markdown, /\| `missing-rollback` \| failed \| 1 \| 1 \|/);
   assert.match(markdown, /Expected output to contain "rollback"/);
   assert.doesNotMatch(markdown, /Release shipped\./);
+});
+
+test('loads prompt fixtures from json payload', () => {
+  const fixtures = loadPromptFixturesFromJson(JSON.stringify({
+    cases: [
+      {
+        id: 'summary-format',
+        prompt: 'Summarize.',
+        actualOutput: 'Summary: done',
+        assertions: [
+          { type: 'contains', value: 'Summary:' },
+        ],
+      },
+    ],
+  }));
+
+  assert.deepEqual(fixtures, [
+    {
+      id: 'summary-format',
+      prompt: 'Summarize.',
+      actualOutput: 'Summary: done',
+      assertions: [
+        { type: 'contains', value: 'Summary:' },
+      ],
+    },
+  ]);
+});
+
+test('cli reads fixtures file writes markdown and returns failing status', async () => {
+  const writes = [];
+  const readPaths = [];
+
+  const exitCode = await runPromptRegressionHarnessCli({
+    argv: ['--fixtures', 'prompt-fixtures.json'],
+    readFile: async (filePath) => {
+      readPaths.push(filePath);
+      return JSON.stringify({
+        cases: [
+          {
+            id: 'missing-summary',
+            prompt: 'Summarize.',
+            actualOutput: 'Done.',
+            assertions: [
+              { type: 'contains', value: 'Summary:' },
+            ],
+          },
+        ],
+      });
+    },
+    writeOutput: (value) => writes.push(value),
+  });
+
+  assert.equal(exitCode, 1);
+  assert.deepEqual(readPaths, ['prompt-fixtures.json']);
+  assert.match(writes[0], /^# Prompt Regression Report/);
+  assert.match(writes[0], /missing-summary/);
+});
+
+test('cli renders help without reading fixture files', async () => {
+  const writes = [];
+
+  const exitCode = await runPromptRegressionHarnessCli({
+    argv: ['--help'],
+    readFile: async () => {
+      throw new Error('readFile should not be called');
+    },
+    writeOutput: (value) => writes.push(value),
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(writes[0], /Usage: prompt-regression-harness/);
 });
