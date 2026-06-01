@@ -1,0 +1,22 @@
+{
+  "cases": [
+    {
+      "id": "release-summary-format",
+      "prompt": "Summarize release notes for a maintainer.",
+      "actualOutput": "Summary:\n- Added CI\n- Improved docs",
+      "assertions": [
+        { "type": "contains", "value": "Summary:" },
+        { "type": "contains", "value": "Added CI" },
+        { "type": "not_contains", "value": "credential" }
+      ]
+    },
+    {
+      "id": "deployment-status",
+      "prompt": "Return only the deployment status.",
+      "actualOutput": "ready",
+      "assertions": [
+        { "type": "exact", "value": "ready" }
+      ]
+    }
+  ]
+}
