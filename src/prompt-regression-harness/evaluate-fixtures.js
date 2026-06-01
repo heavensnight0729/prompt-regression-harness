@@ -11,6 +11,7 @@ export function evaluatePromptFixtures(fixtures) {
   const totalAssertions = cases.reduce((sum, caseResult) => sum + caseResult.assertions.length, 0);
   const failedAssertions = cases.reduce((sum, caseResult) => sum + caseResult.failures.length, 0);
   const failedCases = cases.filter((caseResult) => caseResult.status === 'failed').length;
+  const passedAssertions = totalAssertions - failedAssertions;
 
   return deepFreeze({
     schemaVersion: 'prompt_regression_harness.result/v1',
@@ -20,6 +21,10 @@ export function evaluatePromptFixtures(fixtures) {
       failedCases,
       totalAssertions,
       failedAssertions,
+      score: calculateScore({
+        passedAssertions,
+        totalAssertions,
+      }),
     },
     cases,
   });
@@ -87,6 +92,17 @@ function createAssertionResult({
   }
 
   return result;
+}
+
+function calculateScore({
+  passedAssertions,
+  totalAssertions,
+}) {
+  if (totalAssertions === 0) {
+    return 1;
+  }
+
+  return Number((passedAssertions / totalAssertions).toFixed(4));
 }
 
 function assertFixtures(fixtures) {

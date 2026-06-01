@@ -7,6 +7,8 @@
     "prompt-regression-harness": "src/prompt-regression-harness/cli.js"
   },
   "scripts": {
+    "check:example": "node src/prompt-regression-harness/cli.js --fixtures examples/prompt-fixtures.json",
+    "check:failing-example": "node src/prompt-regression-harness/cli.js --fixtures examples/failing-fixtures.json --fail-on never",
     "test": "node --test --test-concurrency=1"
   },
   "keywords": [

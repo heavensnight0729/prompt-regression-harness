@@ -41,6 +41,7 @@ test('evaluates exact contains and not-contains assertions', () => {
   assert.equal(result.summary.failedCases, 0);
   assert.equal(result.summary.totalAssertions, 4);
   assert.equal(result.summary.failedAssertions, 0);
+  assert.equal(result.summary.score, 1);
   assert.deepEqual(result.cases.map((caseResult) => caseResult.status), ['passed', 'passed']);
   assert.equal(Object.isFrozen(result), true);
   assert.equal(Object.isFrozen(result.cases), true);
@@ -61,6 +62,7 @@ test('reports failed assertions without echoing full prompt output', () => {
 
   assert.equal(result.summary.failedCases, 1);
   assert.equal(result.summary.failedAssertions, 2);
+  assert.equal(result.summary.score, 0);
   assert.equal(result.cases[0].status, 'failed');
   assert.deepEqual(
     result.cases[0].failures.map((failure) => failure.message),
@@ -95,8 +97,8 @@ test('renders deterministic markdown summary and case table', () => {
   const markdown = renderPromptRegressionReport(result);
 
   assert.match(markdown, /^# Prompt Regression Report/);
-  assert.match(markdown, /\| Cases \| Passed \| Failed \| Assertions \| Failed Assertions \|/);
-  assert.match(markdown, /\| 2 \| 1 \| 1 \| 2 \| 1 \|/);
+  assert.match(markdown, /\| Cases \| Passed \| Failed \| Assertions \| Failed Assertions \| Score \|/);
+  assert.match(markdown, /\| 2 \| 1 \| 1 \| 2 \| 1 \| 0\.50 \|/);
   assert.match(markdown, /\| `safe-summary` \| passed \| 1 \| 0 \|/);
   assert.match(markdown, /\| `missing-rollback` \| failed \| 1 \| 1 \|/);
   assert.match(markdown, /Expected output to contain "rollback"/);
@@ -157,6 +159,72 @@ test('cli reads fixtures file writes markdown and returns failing status', async
   assert.deepEqual(readPaths, ['prompt-fixtures.json']);
   assert.match(writes[0], /^# Prompt Regression Report/);
   assert.match(writes[0], /missing-summary/);
+});
+
+test('cli supports json output and configurable failure policy', async () => {
+  const writes = [];
+
+  const exitCode = await runPromptRegressionHarnessCli({
+    argv: [
+      '--fixtures',
+      'prompt-fixtures.json',
+      '--format',
+      'json',
+      '--fail-on',
+      'never',
+    ],
+    readFile: async () => JSON.stringify({
+      cases: [
+        {
+          id: 'missing-summary',
+          prompt: 'Summarize.',
+          actualOutput: 'Done.',
+          assertions: [
+            { type: 'contains', value: 'Summary:' },
+          ],
+        },
+      ],
+    }),
+    writeOutput: (value) => writes.push(value),
+  });
+
+  const json = JSON.parse(writes[0]);
+
+  assert.equal(exitCode, 0);
+  assert.equal(json.summary.failedCases, 1);
+  assert.equal(json.summary.score, 0);
+});
+
+test('cli can fail only when score is below threshold', async () => {
+  const writes = [];
+
+  const exitCode = await runPromptRegressionHarnessCli({
+    argv: [
+      '--fixtures',
+      'prompt-fixtures.json',
+      '--fail-on',
+      'score',
+      '--min-score',
+      '0.75',
+    ],
+    readFile: async () => JSON.stringify({
+      cases: [
+        {
+          id: 'partial-pass',
+          prompt: 'Summarize.',
+          actualOutput: 'Summary: done',
+          assertions: [
+            { type: 'contains', value: 'Summary:' },
+            { type: 'contains', value: 'rollback' },
+          ],
+        },
+      ],
+    }),
+    writeOutput: (value) => writes.push(value),
+  });
+
+  assert.equal(exitCode, 1);
+  assert.match(writes[0], /0\.50/);
 });
 
 test('cli renders help without reading fixture files', async () => {

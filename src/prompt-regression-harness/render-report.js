@@ -6,9 +6,9 @@ export function renderPromptRegressionReport(result) {
     '',
     '## Summary',
     '',
-    '| Cases | Passed | Failed | Assertions | Failed Assertions |',
-    '| ---: | ---: | ---: | ---: | ---: |',
-    `| ${result.summary.totalCases} | ${result.summary.passedCases} | ${result.summary.failedCases} | ${result.summary.totalAssertions} | ${result.summary.failedAssertions} |`,
+    '| Cases | Passed | Failed | Assertions | Failed Assertions | Score |',
+    '| ---: | ---: | ---: | ---: | ---: | ---: |',
+    `| ${result.summary.totalCases} | ${result.summary.passedCases} | ${result.summary.failedCases} | ${result.summary.totalAssertions} | ${result.summary.failedAssertions} | ${formatScore(result.summary.score)} |`,
     '',
     '## Cases',
     '',
@@ -52,6 +52,10 @@ function renderFailures(cases) {
   return failures.map((failure) => (
     `- \`${failure.caseId}\` assertion ${failure.index + 1}: ${failure.message}`
   ));
+}
+
+function formatScore(score) {
+  return Number(score ?? 0).toFixed(2);
 }
 
 function escapeTableCell(value) {

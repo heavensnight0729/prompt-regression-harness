@@ -19,6 +19,9 @@ Runs local prompt regression fixtures and renders a Markdown report.
 
 Options:
   --fixtures <path>   JSON fixture file to evaluate.
+  --format <format>   Output format: markdown or json. Defaults to markdown.
+  --fail-on <policy>  Failure policy: failed-cases, failed-assertions, score, or never.
+  --min-score <n>     Minimum score for --fail-on score. Defaults to 1.
   --help              Show this help message.
 `;
 
@@ -37,17 +40,22 @@ export async function runPromptRegressionHarnessCli({
   const jsonText = await readFileDependency(parsedArgs.fixturesPath, 'utf8');
   const fixtures = loadPromptFixturesFromJson(jsonText);
   const result = evaluatePromptFixtures(fixtures);
-  const markdown = renderPromptRegressionReport(result);
+  const output = parsedArgs.format === 'json'
+    ? `${JSON.stringify(result, null, 2)}\n`
+    : renderPromptRegressionReport(result);
 
-  writeOutput(markdown);
+  writeOutput(output);
 
-  return result.summary.failedCases > 0 ? 1 : 0;
+  return shouldFail(result, parsedArgs) ? 1 : 0;
 }
 
 function parseArgs(argv) {
   const parsedArgs = {
+    failOn: 'failed-cases',
     fixturesPath: null,
+    format: 'markdown',
     help: false,
+    minScore: 1,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -64,6 +72,24 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === '--format') {
+      parsedArgs.format = requireOutputFormat(requireValue(argv, index, '--format'));
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--fail-on') {
+      parsedArgs.failOn = requireFailurePolicy(requireValue(argv, index, '--fail-on'));
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--min-score') {
+      parsedArgs.minScore = requireScore(requireValue(argv, index, '--min-score'));
+      index += 1;
+      continue;
+    }
+
     throw new RangeError(`Unsupported argument: ${arg}`);
   }
 
@@ -72,6 +98,53 @@ function parseArgs(argv) {
   }
 
   return parsedArgs;
+}
+
+function shouldFail(result, parsedArgs) {
+  if (parsedArgs.failOn === 'never') {
+    return false;
+  }
+
+  if (parsedArgs.failOn === 'failed-assertions') {
+    return result.summary.failedAssertions > 0;
+  }
+
+  if (parsedArgs.failOn === 'score') {
+    return result.summary.score < parsedArgs.minScore;
+  }
+
+  return result.summary.failedCases > 0;
+}
+
+function requireOutputFormat(value) {
+  if (value !== 'markdown' && value !== 'json') {
+    throw new RangeError('--format must be markdown or json');
+  }
+
+  return value;
+}
+
+function requireFailurePolicy(value) {
+  if (![
+    'failed-cases',
+    'failed-assertions',
+    'never',
+    'score',
+  ].includes(value)) {
+    throw new RangeError('--fail-on must be failed-cases, failed-assertions, score, or never');
+  }
+
+  return value;
+}
+
+function requireScore(value) {
+  const score = Number(value);
+
+  if (!Number.isFinite(score) || score < 0 || score > 1) {
+    throw new RangeError('--min-score must be a number between 0 and 1');
+  }
+
+  return score;
 }
 
 function requireValue(argv, index, flagName) {

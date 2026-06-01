@@ -1,0 +1,13 @@
+{
+  "cases": [
+    {
+      "id": "release-summary-missing-heading",
+      "prompt": "Summarize release notes for a maintainer.",
+      "actualOutput": "Added CI and improved docs.",
+      "assertions": [
+        { "type": "contains", "value": "Summary:" },
+        { "type": "not_contains", "value": "credential" }
+      ]
+    }
+  ]
+}
