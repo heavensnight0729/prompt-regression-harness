@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible problem with fixture loading, evaluation, or report output.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please do not include real secrets, private prompts, or sensitive model outputs.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+      placeholder: The harness reports a passing case as failed when...
+    validations:
+      required: true
+  - type: textarea
+    id: fixture
+    attributes:
+      label: Minimal fixture
+      description: Provide the smallest safe fixture that reproduces the problem.
+      render: json
+      placeholder: |
+        {
+          "cases": [
+            {
+              "id": "minimal-case",
+              "prompt": "Safe example prompt.",
+              "actualOutput": "Safe example output.",
+              "assertions": [
+                { "type": "contains", "value": "example" }
+              ]
+            }
+          ]
+        }
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      description: Which command did you run?
+      placeholder: node src/prompt-regression-harness/cli.js --fixtures fixture.json
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+    validations:
+      required: true

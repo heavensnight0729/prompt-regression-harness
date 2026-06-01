@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a practical improvement to prompt regression workflows.
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please keep suggestions focused on deterministic, local-first prompt regression workflows.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What maintainer workflow is hard today?
+      placeholder: I want to compare prompt output across multiple fixture files because...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should the harness do?
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: Show a command, fixture shape, or report output that would make the feature clear.
+      render: shell
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Constraints
+      options:
+        - label: The feature should work without calling a model API.
+        - label: The feature should avoid printing full prompt outputs by default.
+        - label: The feature should be covered by tests.

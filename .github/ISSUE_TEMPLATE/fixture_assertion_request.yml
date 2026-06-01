@@ -1,0 +1,37 @@
+name: Assertion request
+description: Propose a new assertion type for fixture evaluation.
+title: "assertion: "
+labels:
+  - assertion
+  - enhancement
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What output behavior should this assertion catch?
+      placeholder: I need to verify that each output includes at least two bullet points...
+    validations:
+      required: true
+  - type: input
+    id: assertion-name
+    attributes:
+      label: Suggested assertion name
+      placeholder: matches_regex
+    validations:
+      required: true
+  - type: textarea
+    id: fixture-example
+    attributes:
+      label: Fixture example
+      description: Show how this assertion would appear in JSON.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: failure-output
+    attributes:
+      label: Failure message
+      description: What should the Markdown report say when the assertion fails?
+    validations:
+      required: true
