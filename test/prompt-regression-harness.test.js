@@ -74,6 +74,29 @@ test('reports failed assertions without echoing full prompt output', () => {
   assert.equal(JSON.stringify(result).includes('Deploy with password in plaintext.'), false);
 });
 
+test('evaluates regex assertions without echoing full prompt output', () => {
+  const result = evaluatePromptFixtures([
+    {
+      id: 'structured-summary',
+      prompt: 'Summarize release notes.',
+      actualOutput: 'Summary:\n- Added CI',
+      assertions: [
+        { type: 'matches_regex', value: '^Summary:\\n- .+' },
+        { type: 'matches_regex', value: '^Result:' },
+      ],
+    },
+  ]);
+
+  assert.equal(result.summary.totalAssertions, 2);
+  assert.equal(result.summary.failedAssertions, 1);
+  assert.equal(result.summary.score, 0.5);
+  assert.equal(result.cases[0].status, 'failed');
+  assert.deepEqual(result.cases[0].failures.map((failure) => failure.message), [
+    'Expected output to match regex "^Result:"',
+  ]);
+  assert.equal(JSON.stringify(result).includes('Summary:\n- Added CI'), false);
+});
+
 test('renders deterministic markdown summary and case table', () => {
   const result = evaluatePromptFixtures([
     {

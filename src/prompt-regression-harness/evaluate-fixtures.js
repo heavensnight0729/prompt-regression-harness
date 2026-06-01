@@ -1,6 +1,7 @@
 const SUPPORTED_ASSERTION_TYPES = Object.freeze([
   'contains',
   'exact',
+  'matches_regex',
   'not_contains',
 ]);
 
@@ -63,6 +64,15 @@ function evaluateAssertion(assertion, actualOutput, index) {
       index,
       passed: actualOutput.includes(assertion.value),
       failureMessage: `Expected output to contain "${assertion.value}"`,
+    });
+  }
+
+  if (assertion.type === 'matches_regex') {
+    return createAssertionResult({
+      assertion,
+      index,
+      passed: compileAssertionRegex(assertion.value).test(actualOutput),
+      failureMessage: `Expected output to match regex "${assertion.value}"`,
     });
   }
 
@@ -144,6 +154,22 @@ function assertAssertion(assertion, fixtureId, index) {
 
   if (typeof assertion.value !== 'string') {
     throw new TypeError(`fixture ${fixtureId} assertion ${index} value must be a string`);
+  }
+
+  if (assertion.type === 'matches_regex') {
+    assertValidRegex(assertion.value, fixtureId, index);
+  }
+}
+
+function compileAssertionRegex(value) {
+  return new RegExp(value, 'u');
+}
+
+function assertValidRegex(value, fixtureId, index) {
+  try {
+    compileAssertionRegex(value);
+  } catch (error) {
+    throw new RangeError(`fixture ${fixtureId} assertion ${index} value must be a valid regex: ${error.message}`);
   }
 }
 
