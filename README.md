@@ -25,6 +25,7 @@ No model API call is required to run the checks.
 | --- | --- |
 | `exact` | Output must exactly match the expected value. |
 | `contains` | Output must include the expected value. |
+| `matches_regex` | Output must match a JavaScript regular expression. |
 | `not_contains` | Output must not include the expected value. |
 
 ## Fixture Format
@@ -38,12 +39,15 @@ No model API call is required to run the checks.
       "actualOutput": "Summary:\n- Added CI",
       "assertions": [
         { "type": "contains", "value": "Summary:" },
+        { "type": "matches_regex", "value": "^Summary:\\n- .+" },
         { "type": "not_contains", "value": "credential" }
       ]
     }
   ]
 }
 ```
+
+A JSON schema is available at [`schema/prompt-fixtures.schema.json`](schema/prompt-fixtures.schema.json).
 
 ## Usage
 
@@ -57,6 +61,12 @@ Return JSON for automation:
 
 ```bash
 node src/prompt-regression-harness/cli.js --fixtures examples/prompt-fixtures.json --format json
+```
+
+Load every `.json` fixture in a directory:
+
+```bash
+node src/prompt-regression-harness/cli.js --fixtures examples
 ```
 
 Fail only when score is below a threshold:
@@ -111,6 +121,8 @@ For report-only checks:
 - name: Generate prompt regression report
   run: node src/prompt-regression-harness/cli.js --fixtures examples/prompt-fixtures.json --fail-on never
 ```
+
+See [GitHub Actions examples](docs/github-actions.md) for complete strict, report-only, score-threshold, and JSON-report workflows.
 
 ## Development
 
