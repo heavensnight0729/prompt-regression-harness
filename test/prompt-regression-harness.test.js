@@ -4,6 +4,9 @@ import { test } from 'node:test';
 import {
   evaluatePromptFixtures,
 } from '../src/prompt-regression-harness/evaluate-fixtures.js';
+import {
+  renderPromptRegressionReport,
+} from '../src/prompt-regression-harness/render-report.js';
 
 test('evaluates exact contains and not-contains assertions', () => {
   const result = evaluatePromptFixtures([
@@ -61,4 +64,35 @@ test('reports failed assertions without echoing full prompt output', () => {
     ],
   );
   assert.equal(JSON.stringify(result).includes('Deploy with password in plaintext.'), false);
+});
+
+test('renders deterministic markdown summary and case table', () => {
+  const result = evaluatePromptFixtures([
+    {
+      id: 'safe-summary',
+      prompt: 'Summarize safely.',
+      actualOutput: 'Summary: safe',
+      assertions: [
+        { type: 'contains', value: 'Summary:' },
+      ],
+    },
+    {
+      id: 'missing-rollback',
+      prompt: 'Write release notes.',
+      actualOutput: 'Release shipped.',
+      assertions: [
+        { type: 'contains', value: 'rollback' },
+      ],
+    },
+  ]);
+
+  const markdown = renderPromptRegressionReport(result);
+
+  assert.match(markdown, /^# Prompt Regression Report/);
+  assert.match(markdown, /\| Cases \| Passed \| Failed \| Assertions \| Failed Assertions \|/);
+  assert.match(markdown, /\| 2 \| 1 \| 1 \| 2 \| 1 \|/);
+  assert.match(markdown, /\| `safe-summary` \| passed \| 1 \| 0 \|/);
+  assert.match(markdown, /\| `missing-rollback` \| failed \| 1 \| 1 \|/);
+  assert.match(markdown, /Expected output to contain "rollback"/);
+  assert.doesNotMatch(markdown, /Release shipped\./);
 });
