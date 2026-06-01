@@ -1,0 +1,23 @@
+{
+  "name": "prompt-regression-harness",
+  "version": "0.1.0",
+  "description": "Dependency-free CLI for regression testing prompt outputs with local fixtures.",
+  "type": "module",
+  "bin": {
+    "prompt-regression-harness": "src/prompt-regression-harness/cli.js"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1"
+  },
+  "keywords": [
+    "ai",
+    "prompts",
+    "regression-testing",
+    "evals",
+    "cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
